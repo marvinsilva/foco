@@ -59,7 +59,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
 <body>
 
 <!-- Fundo em loop (vai e volta). poster = imagem mostrada enquanto o vídeo carrega. -->
-<video id="bg" autoplay muted loop playsinline poster="media/poster.jpg" src="media/fundo.mp4"></video>
+<video id="bg" autoplay muted loop playsinline poster="poster.jpg" src="fundo.mp4"></video>
 <div class="veil"></div>
 
 <main>
@@ -115,11 +115,11 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
 /* ============ CONFIGURAÇÃO ============ */
 const TRACKS = [
   // src = mp3 no repositório; yt = ID do YouTube (usado se o mp3 não existir)
-  { name: "Música relaxante 1", src: "audio/musica1.mp3", yt: "eHqw900CuTY" },
+  { name: "Música relaxante 1", src: "musica1.mp3", yt: "eHqw900CuTY" },
   // { name: "Outra faixa", src: "audio/outra.mp3" },
   // { name: "Só YouTube", yt: "ID_DO_VIDEO" },
 ];
-const RAIN_SRC = "audio/chuva.mp3";        // opcional; se não existir, gera chuva sintética
+const RAIN_SRC = "chuva.mp3";        // opcional; se não existir, gera chuva sintética
 const FALLBACK_COORDS = { lat: -30.03, lon: -51.23, label: "Porto Alegre" };
 /* ====================================== */
 
