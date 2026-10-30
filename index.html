@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foco</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0d10;--ink:#e6e3dc;--mute:#8b9098;--line:rgba(230,227,220,.14);--accent:#a9c0cf;color-scheme:dark}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:300 15px/1.4 "Hanken Grotesk",system-ui,sans-serif;overflow:hidden}
+#bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;
+  background:radial-gradient(120% 90% at 30% 20%,#1b2630,#0b0d10 70%)}
+.veil{position:fixed;inset:0;z-index:-1;background:rgba(7,9,12,.66)}
+main{height:100%;display:grid;grid-template-rows:auto 1fr auto;padding:clamp(16px,3vw,36px);gap:16px}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:1px solid var(--line);border-radius:999px;padding:.5em 1.2em;cursor:pointer;transition:border-color .2s,background .2s}
+button:hover{border-color:var(--mute)}
+button[aria-pressed=true],button.on{background:rgba(169,192,207,.14);border-color:var(--accent);color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* topo */
+.top{display:flex;justify-content:flex-end}
+.weather{text-align:right;color:var(--mute);font-size:14px}
+.weather b{display:block;font-weight:200;font-size:30px;color:var(--ink);letter-spacing:-.02em}
+
+/* centro */
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center}
+.tabs{display:flex;gap:6px}
+.tabs button{border-color:transparent;color:var(--mute)}
+.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--line)}
+.time{font-weight:200;font-size:clamp(72px,17vw,200px);line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.time small{font-size:.28em;color:var(--mute);letter-spacing:0}
+.row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center}
+.set{display:flex;align-items:center;gap:8px;color:var(--mute)}
+.set input{width:4.5em;background:none;border:0;border-bottom:1px solid var(--line);text-align:center;padding:.3em 0;color:var(--ink)}
+.set input:disabled{opacity:.4}
+.go{padding:.6em 2.2em;border-color:var(--ink)}
+[hidden]{display:none!important}
+
+/* base: som */
+.dock{display:grid;grid-template-columns:1fr 1fr;gap:clamp(16px,4vw,48px);border-top:1px solid var(--line);padding-top:16px}
+.ch{display:flex;flex-direction:column;gap:10px}
+.ch header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ch h2{font-weight:400;font-size:15px}
+.ch select{background:#10141a;border:1px solid var(--line);border-radius:8px;padding:.35em .6em;max-width:60%}
+.vol{display:flex;align-items:center;gap:12px;color:var(--mute);font-size:13px}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:2px;background:var(--line);border-radius:2px;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--ink);border:0}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--ink);border:0}
+#note{color:var(--mute);font-size:12px;min-height:1em}
+@media(max-width:640px){.dock{grid-template-columns:1fr}.time{font-size:clamp(64px,22vw,120px)}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- Fundo em loop (vai e volta). poster = imagem mostrada enquanto o vídeo carrega. -->
+<video id="bg" autoplay muted loop playsinline poster="media/poster.jpg" src="media/fundo.mp4"></video>
+<div class="veil"></div>
+
+<main>
+  <div class="top">
+    <div class="weather" id="weather" aria-live="polite">—</div>
+  </div>
+
+  <section class="center">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tabT" aria-selected="true">Timer</button>
+      <button role="tab" id="tabS" aria-selected="false">Cronômetro</button>
+    </div>
+
+    <div class="time" id="display">25:00</div>
+
+    <div class="row" id="presets">
+      <button data-m="25">25</button>
+      <button data-m="50">50</button>
+      <button data-m="90">90</button>
+      <label class="set">minutos <input id="mins" type="number" min="1" max="600" value="25"></label>
+    </div>
+
+    <div class="row">
+      <button class="go" id="start">Iniciar</button>
+      <button id="reset">Zerar</button>
+    </div>
+  </section>
+
+  <section class="dock">
+    <div class="ch">
+      <header>
+        <h2>Música</h2>
+        <select id="track" aria-label="Escolher música"></select>
+      </header>
+      <div class="vol">
+        <button id="play" aria-pressed="false">Tocar</button>
+        <input id="musicVol" type="range" min="0" max="100" value="50" aria-label="Volume da música">
+      </div>
+      <div id="note"></div>
+    </div>
+
+    <div class="ch">
+      <header><h2>Chuva</h2></header>
+      <div class="vol">
+        <button id="rain" aria-pressed="false">Ligar</button>
+        <input id="rainVol" type="range" min="0" max="100" value="40" aria-label="Volume da chuva">
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ============ CONFIGURAÇÃO ============ */
+const TRACKS = [
+  // src = mp3 no repositório; yt = ID do YouTube (usado se o mp3 não existir)
+  { name: "Música relaxante 1", src: "audio/musica1.mp3", yt: "eHqw900CuTY" },
+  // { name: "Outra faixa", src: "audio/outra.mp3" },
+  // { name: "Só YouTube", yt: "ID_DO_VIDEO" },
+];
+const RAIN_SRC = "audio/chuva.mp3";        // opcional; se não existir, gera chuva sintética
+const FALLBACK_COORDS = { lat: -30.03, lon: -51.23, label: "Porto Alegre" };
+/* ====================================== */
+
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : v } catch { return d } },
+  set(k, v){ try { localStorage.setItem(k, v) } catch {} }
+};
+const pad = n => String(n).padStart(2, "0");
+
+/* ---------- MÚSICA ---------- */
+const trackSel = $("#track"), playBtn = $("#play"), musicVol = $("#musicVol"), note = $("#note");
+TRACKS.forEach((t, i) => trackSel.add(new Option(t.name, i)));
+trackSel.hidden = TRACKS.length < 2;
+trackSel.value = store.get("track", 0) < TRACKS.length ? store.get("track", 0) : 0;
+musicVol.value = store.get("musicVol", 50);
+
+const audio = new Audio(); audio.loop = true;
+let ytPlayer = null, ytReady = false, usingYT = false, musicOn = false;
+
+function loadYT(){
+  if (window.YT && YT.Player) return initYT();
+  const s = document.createElement("script"); s.src = "https://www.youtube.com/iframe_api"; document.head.append(s);
+  window.onYouTubeIframeAPIReady = initYT;
+}
+function initYT(){
+  if (ytPlayer) return;
+  const d = document.createElement("div"); d.id = "yt"; d.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-9px";
+  document.body.append(d);
+  ytPlayer = new YT.Player("yt", {
+    height: "1", width: "1",
+    playerVars: { playsinline: 1, loop: 1, controls: 0 },
+    events: { onReady: () => { ytReady = true; if (musicOn && usingYT) startYT() },
+              onStateChange: e => { if (e.data === 0) ytPlayer.playVideo() } }
+  });
+}
+function startYT(){
+  const t = TRACKS[trackSel.value];
+  if (!ytReady) return loadYT();
+  ytPlayer.loadVideoById(t.yt); ytPlayer.setVolume(+musicVol.value);
+}
+function playMusic(){
+  const t = TRACKS[trackSel.value]; note.textContent = "";
+  audio.pause(); if (ytReady) ytPlayer.pauseVideo();
+  const viaYT = () => {
+    if (!t.yt) { note.textContent = "Arquivo não encontrado: " + t.src; return }
+    usingYT = true; note.textContent = "Tocando via YouTube"; startYT();
+  };
+  if (t.src) {
+    usingYT = false; audio.src = t.src; audio.volume = musicVol.value / 100;
+    audio.onerror = viaYT;
+    audio.play().catch(() => { if (!usingYT) viaYT() });
+  } else viaYT();
+}
+function stopMusic(){ audio.pause(); if (ytReady) ytPlayer.pauseVideo() }
+playBtn.onclick = () => {
+  musicOn = !musicOn;
+  playBtn.setAttribute("aria-pressed", musicOn); playBtn.textContent = musicOn ? "Pausar" : "Tocar";
+  musicOn ? playMusic() : stopMusic();
+};
+trackSel.onchange = () => { store.set("track", trackSel.value); if (musicOn) playMusic() };
+musicVol.oninput = () => {
+  audio.volume = musicVol.value / 100; if (ytReady) ytPlayer.setVolume(+musicVol.value);
+  store.set("musicVol", musicVol.value);
+};
+
+/* ---------- CHUVA ---------- */
+const rainBtn = $("#rain"), rainVol = $("#rainVol");
+rainVol.value = store.get("rainVol", 40);
+let rainOn = false, rainFile = null, ctx = null, synth = null;
+
+function makeSynth(){
+  ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+  const len = ctx.sampleRate * 3, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const mk = (type, freq, gain) => {
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq;
+    const g = ctx.createGain(); g.gain.value = gain;
+    src.connect(f).connect(g); src.start(); return g;
+  };
+  const master = ctx.createGain(); master.connect(ctx.destination);
+  mk("highpass", 1800, .35).connect(master);   // chiado da chuva
+  mk("lowpass", 700, .5).connect(master);      // massa grave
+  return master;
+}
+function setRainVol(){
+  const v = rainVol.value / 100;
+  if (rainFile) rainFile.volume = v;
+  if (synth) synth.gain.value = v * .5;
+}
+rainBtn.onclick = () => {
+  rainOn = !rainOn;
+  rainBtn.setAttribute("aria-pressed", rainOn); rainBtn.textContent = rainOn ? "Desligar" : "Ligar";
+  if (!rainOn) { rainFile && rainFile.pause(); synth && (synth.gain.value = 0); return }
+  const useSynth = () => { rainFile = null; synth = synth || makeSynth(); ctx.resume(); setRainVol() };
+  if (synth) return useSynth();
+  if (!rainFile) { rainFile = new Audio(RAIN_SRC); rainFile.loop = true; rainFile.onerror = () => rainOn && useSynth() }
+  setRainVol(); rainFile.play().catch(() => rainOn && useSynth());
+};
+rainVol.oninput = () => { setRainVol(); store.set("rainVol", rainVol.value) };
+
+/* ---------- TIMER / CRONÔMETRO ---------- */
+const disp = $("#display"), startBtn = $("#start"), resetBtn = $("#reset"),
+      minsIn = $("#mins"), presets = $("#presets"), tabT = $("#tabT"), tabS = $("#tabS");
+let mode = "timer", running = false, tick = null;
+let tTotal = 25 * 60e3, tEnd = 0, tLeft = tTotal;          // timer
+let sAcc = 0, sStart = 0;                                  // cronômetro
+
+function fmt(ms, tenths){
+  const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60;
+  const base = (h ? h + ":" + pad(m) : pad(m)) + ":" + pad(ss);
+  return tenths ? base + "<small>." + Math.floor(ms % 1000 / 100) + "</small>" : base;
+}
+function render(){
+  const ms = mode === "timer" ? (running ? Math.max(0, tEnd - Date.now()) : tLeft)
+                              : (running ? sAcc + Date.now() - sStart : sAcc);
+  disp.innerHTML = fmt(ms, mode === "stop");
+  document.title = running ? fmt(ms).replace(/<[^>]+>/g, "") + " · Foco" : "Foco";
+  if (mode === "timer" && running && ms <= 0) finishTimer();
+}
+function beep(){
+  ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); ctx.resume();
+  [0, .35, .7].forEach(dt => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.value = 660; o.connect(g).connect(ctx.destination);
+    g.gain.setValueAtTime(.0001, ctx.currentTime + dt);
+    g.gain.exponentialRampToValueAtTime(.25, ctx.currentTime + dt + .03);
+    g.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime + dt + .3);
+    o.start(ctx.currentTime + dt); o.stop(ctx.currentTime + dt + .32);
+  });
+}
+function finishTimer(){ stop(); tLeft = 0; render(); beep(); disp.textContent = "00:00" }
+function stop(){ running = false; clearInterval(tick); startBtn.textContent = "Iniciar"; minsIn.disabled = false }
+function start(){
+  running = true; startBtn.textContent = "Pausar"; minsIn.disabled = true;
+  if (mode === "timer") { if (tLeft <= 0) tLeft = tTotal; tEnd = Date.now() + tLeft }
+  else sStart = Date.now();
+  tick = setInterval(render, 100); render();
+}
+startBtn.onclick = () => {
+  if (running) {
+    if (mode === "timer") tLeft = Math.max(0, tEnd - Date.now()); else sAcc += Date.now() - sStart;
+    stop(); render();
+  } else start();
+};
+resetBtn.onclick = () => { stop(); tLeft = tTotal; sAcc = 0; render() };
+function setMinutes(m){
+  m = Math.min(600, Math.max(1, Math.round(+m) || 25));
+  minsIn.value = m; tTotal = tLeft = m * 60e3; if (!running) render();
+}
+presets.querySelectorAll("button").forEach(b => b.onclick = () => !running && setMinutes(b.dataset.m));
+minsIn.onchange = () => setMinutes(minsIn.value);
+function setMode(m){
+  if (m === mode) return; stop(); mode = m;
+  tabT.setAttribute("aria-selected", m === "timer"); tabS.setAttribute("aria-selected", m === "stop");
+  presets.hidden = m !== "timer"; render();
+}
+tabT.onclick = () => setMode("timer"); tabS.onclick = () => setMode("stop");
+render();
+
+/* ---------- PREVISÃO DO TEMPO (Open-Meteo, sem chave) ---------- */
+const WMO = { 0:"Céu limpo",1:"Quase limpo",2:"Parcialmente nublado",3:"Nublado",45:"Neblina",48:"Neblina",
+  51:"Garoa leve",53:"Garoa",55:"Garoa forte",61:"Chuva fraca",63:"Chuva",65:"Chuva forte",
+  71:"Neve fraca",73:"Neve",75:"Neve forte",80:"Pancadas leves",81:"Pancadas",82:"Pancadas fortes",95:"Trovoada",96:"Trovoada",99:"Trovoada" };
+async function weather(c){
+  try {
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}` +
+      `&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`;
+    const j = await (await fetch(u)).json();
+    $("#weather").innerHTML = `<b>${Math.round(j.current.temperature_2m)}°</b>` +
+      `${WMO[j.current.weather_code] || "—"}<br>${Math.round(j.daily.temperature_2m_min[0])}° / ${Math.round(j.daily.temperature_2m_max[0])}° · ${c.label}`;
+  } catch { $("#weather").textContent = "Tempo indisponível" }
+}
+function initWeather(){
+  const go = c => { weather(c); setInterval(() => weather(c), 15 * 60e3) };
+  if (!navigator.geolocation) return go(FALLBACK_COORDS);
+  navigator.geolocation.getCurrentPosition(
+    p => go({ lat: p.coords.latitude, lon: p.coords.longitude, label: "Sua localização" }),
+    () => go(FALLBACK_COORDS), { timeout: 6000 });
+}
+initWeather();
+</script>
+</body>
+</html>
