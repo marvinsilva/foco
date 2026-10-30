@@ -59,7 +59,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
 <body>
 
 <!-- Fundo em loop (vai e volta). poster = imagem mostrada enquanto o vídeo carrega. -->
-<video id="bg" autoplay muted loop playsinline poster="media/poster.jpg" src="media/fundo.mp4"></video>
+<video id="bg" autoplay muted loop playsinline poster="poster.jpg" src="fundo.mp4"></video>
 <div class="veil"></div>
 
 <main>
@@ -115,11 +115,11 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
 /* ============ CONFIGURAÇÃO ============ */
 const TRACKS = [
   // src = mp3 no repositório; yt = ID do YouTube (usado se o mp3 não existir)
-  { name: "Música relaxante 1", src: "audio/musica1.mp3", yt: "eHqw900CuTY" },
+  { name: "Música relaxante 1", src: "musica1.mp3", yt: "eHqw900CuTY" },
   // { name: "Outra faixa", src: "audio/outra.mp3" },
   // { name: "Só YouTube", yt: "ID_DO_VIDEO" },
 ];
-const RAIN_SRC = "audio/chuva.mp3";        // opcional; se não existir, gera chuva sintética
+const RAIN_SRC = "chuva.mp3";        // opcional; se não existir, gera chuva sintética
 const FALLBACK_COORDS = { lat: -30.03, lon: -51.23, label: "Porto Alegre" };
 /* ====================================== */
 
@@ -137,7 +137,8 @@ trackSel.hidden = TRACKS.length < 2;
 trackSel.value = store.get("track", 0) < TRACKS.length ? store.get("track", 0) : 0;
 musicVol.value = store.get("musicVol", 50);
 
-const audio = new Audio(); audio.loop = true;
+const audio = new Audio(); audio.loop = true; audio.preload = "auto";
+if (TRACKS[trackSel.value].src) audio.src = TRACKS[trackSel.value].src;   // começa a baixar já ao abrir
 let ytPlayer = null, ytReady = false, usingYT = false, musicOn = false;
 
 function loadYT(){
@@ -161,15 +162,20 @@ function startYT(){
   if (!ytReady) return loadYT();
   ytPlayer.loadVideoById(t.yt); ytPlayer.setVolume(+musicVol.value);
 }
+let loaded = -1;   // faixa carregada; se for a mesma, retoma de onde parou
 function playMusic(){
-  const t = TRACKS[trackSel.value]; note.textContent = "";
-  audio.pause(); if (ytReady) ytPlayer.pauseVideo();
+  const i = +trackSel.value, t = TRACKS[i]; note.textContent = "";
+  if (loaded === i) {
+    if (usingYT) { ytReady ? ytPlayer.playVideo() : startYT() } else audio.play();
+    return;
+  }
+  loaded = i; audio.pause(); if (ytReady) ytPlayer.pauseVideo();
   const viaYT = () => {
     if (!t.yt) { note.textContent = "Arquivo não encontrado: " + t.src; return }
     usingYT = true; note.textContent = "Tocando via YouTube"; startYT();
   };
   if (t.src) {
-    usingYT = false; audio.src = t.src; audio.volume = musicVol.value / 100;
+    usingYT = false; if (!audio.src.endsWith(t.src)) audio.src = t.src; audio.volume = musicVol.value / 100;
     audio.onerror = viaYT;
     audio.play().catch(() => { if (!usingYT) viaYT() });
   } else viaYT();
@@ -190,6 +196,7 @@ musicVol.oninput = () => {
 const rainBtn = $("#rain"), rainVol = $("#rainVol");
 rainVol.value = store.get("rainVol", 40);
 let rainOn = false, rainFile = null, ctx = null, synth = null;
+const rainPre = new Audio(RAIN_SRC); rainPre.loop = true; rainPre.preload = "auto";   // começa a baixar já ao abrir
 
 function makeSynth(){
   ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
@@ -217,7 +224,7 @@ rainBtn.onclick = () => {
   if (!rainOn) { rainFile && rainFile.pause(); synth && (synth.gain.value = 0); return }
   const useSynth = () => { rainFile = null; synth = synth || makeSynth(); ctx.resume(); setRainVol() };
   if (synth) return useSynth();
-  if (!rainFile) { rainFile = new Audio(RAIN_SRC); rainFile.loop = true; rainFile.onerror = () => rainOn && useSynth() }
+  if (!rainFile) { rainFile = rainPre; rainFile.onerror = () => rainOn && useSynth() }
   setRainVol(); rainFile.play().catch(() => rainOn && useSynth());
 };
 rainVol.oninput = () => { setRainVol(); store.set("rainVol", rainVol.value) };
